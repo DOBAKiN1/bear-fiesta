@@ -1,7 +1,6 @@
 import curses
 from colorama import init
 import random
-import os
 
 init()
 
