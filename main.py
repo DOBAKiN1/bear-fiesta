@@ -132,19 +132,22 @@ class GameField:
     def __init__(self, width, height):
         self.width = width
         self.height = height
+        self.timeStop = 0
         self.playerClass = Player(width // 2, height // 2)
         self.playerClassInCave = Player(10 // 2, 10 // 2)
         self.currentTile = Dirt(width // 2, height // 2)
         self.grassOnMapCap = 200
         self.fishOnMapCap = 3
         self.treesOnMapCap = 10
-        self.wolvesOnMapCap = 2
+        self.wolvesOnMapCap = 10
         self.deerOnMapCap = 3
         self.food = 0
         self.caveMode = False
         self.caveModeExit = False
         self.moveStat = 0
         self.fishStat = 0
+        self.treeStat = 0
+        self.wolfStat = 0
         self.worldGeneration()
 
     def worldGeneration(self):
@@ -459,17 +462,19 @@ class GameField:
             self.spawnWolf()
             # self.spawnDeer()
             self.growGrass()
-            if self.isOnCave():
-                return True
+            self.isOnCave()
+
         else:
             if self.playerClassInCave.X == 2 and self.playerClassInCave.Y == 2:
                 if self.food >= 100:
                     print("Перемога")
                 else:
                     print("Поразка")
-                print("Кількість Ви здобули ", self.food, " їжі")
+                print("Кількість їжі", self.food)
                 print("Кількість пройдених кроків:", self.moveStat)
                 print("Кількість зловленої риби:", self.fishStat)
+                print("Кількість зловлених вовків:", self.wolfStat)
+                print("Кількість понищених дерев:", self.treeStat)
 
                 exit(1)
 
@@ -749,7 +754,7 @@ class GameField:
         if wolvesOnMap >= self.wolvesOnMapCap:
             return
 
-        spawnChance = random.randint(1, 100)
+        spawnChance = random.randint(1, 10)
         if spawnChance == 1:
             randomDirtTile = random.choice(self.dirtList)
             newWolf = Wolf(randomDirtTile.X, randomDirtTile.Y)
@@ -778,12 +783,13 @@ class GameField:
             self.fishList.remove(tile)
             newSmallWater = SmallWater(tile.X, tile.Y)
             self.smallWaterList.append(newSmallWater)
-            self.fishStat +=1
+            self.fishStat += 1
             return newSmallWater
         elif tile.displaySymbol == "T":
             self.treeList.remove(tile)
             newDirt = Dirt(tile.X, tile.Y)
             self.dirtList.append(newDirt)
+            self.treeStat += 1
             return newDirt
         elif tile.displaySymbol == ",":
             self.grassList.remove(tile)
@@ -794,6 +800,7 @@ class GameField:
             self.wolfList.remove(tile)
             newDirt = Dirt(tile.X, tile.Y)
             self.dirtList.append(newDirt)
+            self.wolfStat += 1
             return newDirt
         elif tile.displaySymbol == "D":
             self.deerList.remove(tile)
@@ -900,6 +907,7 @@ def main(stdscr):
             if tile is None:
                 nullCount += 1
 
+
     while True:
         stdscr.clear()
         game.display(stdscr)
@@ -916,35 +924,42 @@ def main(stdscr):
         elif action == curses.KEY_RIGHT:
             direction = 'right'
         elif action == ord(' '):
-            if game.makeTick():
-                game.display(stdscr)
+            if game.timeStop == 0:
+                game.makeTick()
+            game.display(stdscr)
             continue
+        elif action == ord('1'):
+            direction = 'none'
+            if game.timeStop == 0:
+                game.timeStop = 1
+            else:
+                game.timeStop = 0
         elif action == 27:
-            print("Tiles amount", count, "--- 1600?")
-            print("ERROR TILES", nullCount)
-            print("Dirt", len(game.dirtList))
-            print("Grass", len(game.grassList))
-            print("Fish", len(game.fishList))
-            print("Wolf", len(game.wolfList))
-            print("Deer", len(game.deerList))
-            print("Tree", len(game.treeList))
-            print("SWater", len(game.smallWaterList))
-            print("BWater", len(game.bigWaterList))
-            print("Sum all", len(game.dirtList) + len(game.wolfList) + len(game.grassList) + len(game.fishList) +
+            print("Клітинок в полі", count, "--- 1600?")
+            print("Помиклових клітинок", nullCount)
+            print("Земля", len(game.dirtList))
+            print("Трава", len(game.grassList))
+            print("Риба", len(game.fishList))
+            print("Вовк", len(game.wolfList))
+            # print("Deer", len(game.deerList))
+            print("Дерева", len(game.treeList))
+            print("Мала вода", len(game.smallWaterList))
+            print("Велика вода", len(game.bigWaterList))
+            print("Сума клітинок", len(game.dirtList) + len(game.wolfList) + len(game.grassList) + len(game.fishList) +
                   len(game.treeList) + len(game.smallWaterList) + len(game.bigWaterList) + len(game.deerList) +
                   game.width * 2 + (game.height - 2) * 2 + 1 + 1)  # +1 is player +1 is cave
-            print("cave dirt", len(game.caveDirtList))
+            print("Земля в печері", len(game.caveDirtList))
             count = 0
             for row in game.caveField:
                 count += len(row)
-            print("cave tile", count)  # +1 is player
-            print("Sum all cave", len(game.caveDirtList) + 1 + 20 + 16)  # +1 is player
+            print("Клітинок в печері", count)  # +1 is player
+            print("Сума клітинок печери", len(game.caveDirtList) + 1 + 20 + 16)  # +1 is player
             break
         else:
             continue
-
-        if game.makeTick():
-            game.display(stdscr)
+        if game.timeStop == 0:
+            game.makeTick()
+        game.display(stdscr)
         game.move_player(direction)
 
     curses.endwin()
