@@ -139,7 +139,7 @@ class GameField:
         self.grassOnMapCap = 200
         self.fishOnMapCap = 3
         self.treesOnMapCap = 10
-        self.wolvesOnMapCap = 10
+        self.wolvesOnMapCap = 5
         self.deerOnMapCap = 3
         self.food = 0
         self.caveMode = False
@@ -167,7 +167,6 @@ class GameField:
             self.field.append(row)
 
         self.field[self.playerClass.Y][self.playerClass.X] = self.playerClass
-        self.dirtList.append(self.currentTile)  # ticket one that need to be removed (move_player)
 
         self.waterGeneration()
         self.treeGeneration()
@@ -184,55 +183,63 @@ class GameField:
             for j in range(1, bigWaterRange):
                 for i in range(1, bigWaterRange - j):
                     self.dirtList.remove(self.field[j][i])
-                    self.field[j][i] = BigWater(i, j)
-                    self.bigWaterList.append(BigWater(i, j))
+                    newBigWater = BigWater(i, j)
+                    self.field[j][i] = newBigWater
+                    self.bigWaterList.append(newBigWater)
         elif random_corner == 2:
             for j in range(1, bigWaterRange):
                 for i in range(self.width - bigWaterRange + j, self.width - 1):
                     self.dirtList.remove(self.field[j][i])
-                    self.field[j][i] = BigWater(i, j)
-                    self.bigWaterList.append(BigWater(i, j))
+                    newBigWater = BigWater(i, j)
+                    self.field[j][i] = newBigWater
+                    self.bigWaterList.append(newBigWater)
         elif random_corner == 3:
             for j in range(self.height - bigWaterRange, self.height - 1):
                 for i in range(1, bigWaterRange - (self.height - j - 1)):
                     self.dirtList.remove(self.field[j][i])
-                    self.field[j][i] = BigWater(i, j)
-                    self.bigWaterList.append(BigWater(i, j))
+                    newBigWater = BigWater(i, j)
+                    self.field[j][i] = newBigWater
+                    self.bigWaterList.append(newBigWater)
         elif random_corner == 4:
             for j in range(self.height - bigWaterRange, self.height - 1):
                 for i in range(self.width - bigWaterRange + (self.height - j - 1), self.width - 1):
                     self.dirtList.remove(self.field[j][i])
-                    self.field[j][i] = BigWater(i, j)
-                    self.bigWaterList.append(BigWater(i, j))
+                    newBigWater = BigWater(i, j)
+                    self.field[j][i] = newBigWater
+                    self.bigWaterList.append(newBigWater)
 
         if random_corner == 1:  # left up
             for j in range(1, smallWaterRange):
                 for i in range(1, smallWaterRange - j):
                     if isinstance(self.field[j][i], Dirt):
                         self.dirtList.remove(self.field[j][i])
-                        self.field[j][i] = SmallWater(i, j)
-                        self.smallWaterList.append(SmallWater(i, j))
+                        newSmallWater = SmallWater(i, j)
+                        self.field[j][i] = newSmallWater
+                        self.smallWaterList.append(newSmallWater)
         elif random_corner == 2:  # right up
             for j in range(1, smallWaterRange):
                 for i in range(self.width - smallWaterRange + j, self.width - 1):
                     if isinstance(self.field[j][i], Dirt):
                         self.dirtList.remove(self.field[j][i])
-                        self.field[j][i] = SmallWater(i, j)
-                        self.smallWaterList.append(SmallWater(i, j))
+                        newSmallWater = SmallWater(i, j)
+                        self.field[j][i] = newSmallWater
+                        self.smallWaterList.append(newSmallWater)
         elif random_corner == 3:  # down left
             for j in range(self.height - smallWaterRange, self.height - 1):
                 for i in range(1, smallWaterRange - (self.height - j - 1)):
                     if isinstance(self.field[j][i], Dirt):
                         self.dirtList.remove(self.field[j][i])
-                        self.field[j][i] = SmallWater(i, j)
-                        self.smallWaterList.append(SmallWater(i, j))
+                        newSmallWater = SmallWater(i, j)
+                        self.field[j][i] = newSmallWater
+                        self.smallWaterList.append(newSmallWater)
         elif random_corner == 4:  # down right
             for j in range(self.height - smallWaterRange, self.height - 1):
                 for i in range(self.width - smallWaterRange + (self.height - j - 1), self.width - 1):
                     if isinstance(self.field[j][i], Dirt):
                         self.dirtList.remove(self.field[j][i])
-                        self.field[j][i] = SmallWater(i, j)
-                        self.smallWaterList.append(SmallWater(i, j))
+                        newSmallWater = SmallWater(i, j)
+                        self.field[j][i] = newSmallWater
+                        self.smallWaterList.append(newSmallWater)
 
     def caveGeneration(self):
         randomX = random.randint(2, self.width - 2)
@@ -306,10 +313,10 @@ class GameField:
     def display(self, stdscr):
         if self.caveMode is False:
             stdscr.addstr(0, 0, "Кількість їжі: " + str(self.food))
-            rowCounter = 0
             for row in self.field:
+                if len(row) != self.width:
+                    somethingWrong = 1
                 tileCounter = 0
-                rowCounter += 1
                 for tile in row:
 
                     if tile.displaySymbol == 'B':
@@ -332,14 +339,11 @@ class GameField:
                         stdscr.addstr(tile.Y + 1, tile.X, tile.displaySymbol, curses.color_pair(9))
                     else:
                         stdscr.addstr(tile.Y + 1, tile.X, "E", curses.color_pair(1))
-
                     tileCounter += 1
         else:
             stdscr.addstr(0, 0, "Кількість їжі: " + str(self.food))
-            rowCounter = 0
             for row in self.caveField:
                 tileCounter = 0
-                rowCounter += 1
                 for tile in row:
 
                     if tile.displaySymbol == 'B':
@@ -356,7 +360,7 @@ class GameField:
 
                     tileCounter += 1
 
-    def move_player(self, direction):  # ticket No list removing appending
+    def move_player(self, direction):
         if self.caveMode is False:
             if direction == 'up':
                 if not self.field[self.playerClass.Y - 1][self.playerClass.X].isPassable:
@@ -365,9 +369,17 @@ class GameField:
                     self.food += self.field[self.playerClass.Y - 1][self.playerClass.X].foodAmount
                     self.field[self.playerClass.Y - 1][self.playerClass.X] = self.wasEaten(
                         self.field[self.playerClass.Y - 1][self.playerClass.X])
+                if isinstance(self.currentTile, Dirt):
+                    self.dirtList.append(self.currentTile)
+                elif isinstance(self.currentTile, SmallWater):
+                    self.smallWaterList.append(self.currentTile)
                 self.field[self.playerClass.Y][self.playerClass.X] = self.currentTile
                 self.playerClass.Y -= 1
                 self.currentTile = self.field[self.playerClass.Y][self.playerClass.X]
+                if isinstance(self.currentTile, Dirt):
+                    self.dirtList.remove(self.currentTile)
+                elif isinstance(self.currentTile, SmallWater):
+                    self.smallWaterList.remove(self.currentTile)
                 self.moveStat += 1
             elif direction == 'down':
                 if not self.field[self.playerClass.Y + 1][self.playerClass.X].isPassable:
@@ -376,9 +388,17 @@ class GameField:
                     self.food += self.field[self.playerClass.Y + 1][self.playerClass.X].foodAmount
                     self.field[self.playerClass.Y + 1][self.playerClass.X] = self.wasEaten(
                         self.field[self.playerClass.Y + 1][self.playerClass.X])
+                if isinstance(self.currentTile, Dirt):
+                    self.dirtList.append(self.currentTile)
+                elif isinstance(self.currentTile, SmallWater):
+                    self.smallWaterList.append(self.currentTile)
                 self.field[self.playerClass.Y][self.playerClass.X] = self.currentTile
                 self.playerClass.Y += 1
                 self.currentTile = self.field[self.playerClass.Y][self.playerClass.X]
+                if isinstance(self.currentTile, Dirt):
+                    self.dirtList.remove(self.currentTile)
+                elif isinstance(self.currentTile, SmallWater):
+                    self.smallWaterList.remove(self.currentTile)
                 self.moveStat += 1
             elif direction == 'left':
                 if not self.field[self.playerClass.Y][self.playerClass.X - 1].isPassable:
@@ -387,9 +407,17 @@ class GameField:
                     self.food += self.field[self.playerClass.Y][self.playerClass.X - 1].foodAmount
                     self.field[self.playerClass.Y][self.playerClass.X - 1] = self.wasEaten(
                         self.field[self.playerClass.Y][self.playerClass.X - 1])
+                if isinstance(self.currentTile, Dirt):
+                    self.dirtList.append(self.currentTile)
+                elif isinstance(self.currentTile, SmallWater):
+                    self.smallWaterList.append(self.currentTile)
                 self.field[self.playerClass.Y][self.playerClass.X] = self.currentTile
                 self.playerClass.X -= 1
                 self.currentTile = self.field[self.playerClass.Y][self.playerClass.X]
+                if isinstance(self.currentTile, Dirt):
+                    self.dirtList.remove(self.currentTile)
+                elif isinstance(self.currentTile, SmallWater):
+                    self.smallWaterList.remove(self.currentTile)
                 self.moveStat += 1
             elif direction == 'right':
                 if not self.field[self.playerClass.Y][self.playerClass.X + 1].isPassable:
@@ -398,9 +426,17 @@ class GameField:
                     self.food += self.field[self.playerClass.Y][self.playerClass.X + 1].foodAmount
                     self.field[self.playerClass.Y][self.playerClass.X + 1] = self.wasEaten(
                         self.field[self.playerClass.Y][self.playerClass.X + 1])
+                if isinstance(self.currentTile, Dirt):
+                    self.dirtList.append(self.currentTile)
+                elif isinstance(self.currentTile, SmallWater):
+                    self.smallWaterList.append(self.currentTile)
                 self.field[self.playerClass.Y][self.playerClass.X] = self.currentTile
                 self.playerClass.X += 1
                 self.currentTile = self.field[self.playerClass.Y][self.playerClass.X]
+                if isinstance(self.currentTile, Dirt):
+                    self.dirtList.remove(self.currentTile)
+                elif isinstance(self.currentTile, SmallWater):
+                    self.smallWaterList.remove(self.currentTile)
                 self.moveStat += 1
 
             self.field[self.playerClass.Y][self.playerClass.X] = self.playerClass
@@ -479,6 +515,7 @@ class GameField:
                 exit(1)
 
     def moveWolf(self):
+        wolfNumber = 1
         for wolf in self.wolfList:
             possible_moves = []
 
@@ -497,21 +534,21 @@ class GameField:
                 possible_moves.append(('right', wolf.X + 1, wolf.Y))
 
             if possible_moves:
-                # Check if player is nearby or at a distance of 3 tiles
+                # Check if player is nearby or at a distance of 5 tiles
                 player_nearby = False
                 for direction, x, y in possible_moves:
                     distance_to_player = abs(x - self.playerClass.X) + abs(y - self.playerClass.Y)
-                    if distance_to_player <= 3:
+                    if distance_to_player <= 5:
                         player_nearby = True
                         break
 
-                # Check if wolf is nearby or at a distance of 5 tiles
+                # Check if wolf is nearby or at a distance of 10 tiles
                 wolf_nearby = False
                 for direction, x, y in possible_moves:
                     for WOOOLF in self.wolfList:
                         if wolf != WOOOLF:
                             distance_to_wolf = abs(x - WOOOLF.X) + abs(y - WOOOLF.Y)
-                            if distance_to_wolf <= 5:
+                            if distance_to_wolf <= 10:
                                 wolf_nearby = True
                                 break
 
@@ -520,7 +557,7 @@ class GameField:
                             isinstance(self.field[wolf.Y - 1][wolf.X], Player) or \
                             isinstance(self.field[wolf.Y][wolf.X + 1], Player) or \
                             isinstance(self.field[wolf.Y][wolf.X - 1], Player):
-                        self.food -= 5  # ticket Something strange with food but meh
+                        self.food -= 5
                     # Wolf follows the player
                     new_moves = []
                     for direction, x, y in possible_moves:
@@ -540,67 +577,88 @@ class GameField:
 
                         if isinstance(self.field[new_y][new_x], Dirt):
                             new_moves.append((direction, new_x, new_y))
+                        if isinstance(self.field[new_y][new_x], Grass):
+                            new_moves.append((direction, new_x, new_y))
 
                     if new_moves:
                         direction, new_x, new_y = random.choice(new_moves)
                         # Remove wolf from current location
-                        self.dirtList.remove(self.field[new_y][new_x])
-                        self.wolfList.remove(self.field[wolf.Y][wolf.X])
-                        newDirt = Dirt(wolf.X, wolf.Y)
-                        self.field[wolf.Y][wolf.X] = newDirt
-                        self.dirtList.append(newDirt)
+                        if isinstance(self.field[new_y][new_x], Dirt):
+                            self.dirtList.remove(self.field[new_y][new_x])
+                            newTile = wolf.currentTile
+                            if isinstance(newTile, Dirt):
+                                self.field[wolf.Y][wolf.X] = newTile
+                                self.dirtList.append(newTile)
+                            if isinstance(newTile, Grass):
+                                self.field[wolf.Y][wolf.X] = newTile
+                                self.grassList.append(newTile)
+                        elif isinstance(self.field[new_y][new_x], Grass):
+                            self.grassList.remove(self.field[new_y][new_x])
+                            newTile = wolf.currentTile
+                            if isinstance(newTile, Dirt):
+                                self.field[wolf.Y][wolf.X] = newTile
+                                self.dirtList.append(newTile)
+                            if isinstance(newTile, Grass):
+                                self.field[wolf.Y][wolf.X] = newTile
+                                self.grassList.append(newTile)
                         # Move wolf to new location
+                        wolf.currentTile = self.field[new_y][new_x]
                         self.field[new_y][new_x] = wolf
-                        self.wolfList.append(wolf)
                         wolf.X = new_x
                         wolf.Y = new_y
                 elif player_nearby:
-                    # ticket Wolf flee only if see you in + range
                     # Wolf flee away from the player
                     new_moves = []
                     for direction, x, y in possible_moves:
                         if x < self.playerClass.X:
-                            new_x = wolf.X + 1
-                        elif x > self.playerClass.X:
                             new_x = wolf.X - 1
+                        elif x > self.playerClass.X:
+                            new_x = wolf.X + 1
                         else:
                             new_x = wolf.X
 
                         if y < self.playerClass.Y:
-                            new_y = wolf.Y + 1
-                        elif y > self.playerClass.Y:
                             new_y = wolf.Y - 1
+                        elif y > self.playerClass.Y:
+                            new_y = wolf.Y + 1
                         else:
                             new_y = wolf.Y
 
                         if isinstance(self.field[new_y][new_x], Dirt):
                             new_moves.append((direction, new_x, new_y))
+                        if isinstance(self.field[new_y][new_x], Grass):
+                            new_moves.append((direction, new_x, new_y))
 
                     if new_moves:
-                        # ticket no moving on grass
-                        direction, new_x, new_y = random.choice(possible_moves)
-                        self.wolfList.remove(self.field[wolf.Y][wolf.X])
+                        direction, new_x, new_y = random.choice(new_moves)
+                        # Remove wolf from current location
                         if isinstance(self.field[new_y][new_x], Dirt):
                             self.dirtList.remove(self.field[new_y][new_x])
-                        if isinstance(self.field[new_y][new_x], Grass):
+                            newTile = wolf.currentTile
+                            if isinstance(newTile, Dirt):
+                                self.field[wolf.Y][wolf.X] = newTile
+                                self.dirtList.append(newTile)
+                            if isinstance(newTile, Grass):
+                                self.field[wolf.Y][wolf.X] = newTile
+                                self.grassList.append(newTile)
+                        elif isinstance(self.field[new_y][new_x], Grass):
                             self.grassList.remove(self.field[new_y][new_x])
-                        newTile = wolf.currentTile
-                        self.field[wolf.Y][wolf.X] = newTile
-                        if isinstance(newTile, Dirt):
-                            self.dirtList.append(newTile)
-                        if isinstance(newTile, Grass):
-                            self.grassList.append(newTile)
+                            newTile = wolf.currentTile
+                            if isinstance(newTile, Dirt):
+                                self.field[wolf.Y][wolf.X] = newTile
+                                self.dirtList.append(newTile)
+                            if isinstance(newTile, Grass):
+                                self.field[wolf.Y][wolf.X] = newTile
+                                self.grassList.append(newTile)
+                        # Move wolf to new location
                         wolf.currentTile = self.field[new_y][new_x]
                         self.field[new_y][new_x] = wolf
-                        self.wolfList.append(wolf)
                         wolf.X = new_x
                         wolf.Y = new_y
                 else:
-                    # ticket ? or feature Why sometimes he moves and sometimes is not? And 2-3 tiles move
                     # Wolf moves randomly
                     direction, new_x, new_y = random.choice(possible_moves)
                     # Remove wolf from current location
-                    self.wolfList.remove(self.field[wolf.Y][wolf.X])
                     if isinstance(self.field[new_y][new_x], Dirt):
                         self.dirtList.remove(self.field[new_y][new_x])
                         newTile = wolf.currentTile
@@ -622,7 +680,6 @@ class GameField:
                     # Move wolf to new location
                     wolf.currentTile = self.field[new_y][new_x]
                     self.field[new_y][new_x] = wolf
-                    self.wolfList.append(wolf)
                     wolf.X = new_x
                     wolf.Y = new_y
 
