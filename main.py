@@ -66,6 +66,14 @@ class Tree(Tile):
         self.foodAmount = 10
 
 
+class Mushroom(Tile):
+    def __init__(self, X, Y):
+        self.X = X
+        self.Y = Y
+        self.displaySymbol = "M"
+        self.foodAmount = 10
+
+
 class Fish(Tile):
     def __init__(self, X, Y):
         self.X = X
@@ -118,6 +126,7 @@ class Error(Tile):  # ticket ^To be implemented^
 
 class GameField:
     wolfList = []
+    mushroomList = []
     field = []
     caveField = []
     grassList = []
@@ -132,6 +141,8 @@ class GameField:
     def __init__(self, width, height):
         self.width = width
         self.height = height
+        self.caveWidth = 10
+        self.caveHeight = 10
         self.timeStop = 0
         self.playerClass = Player(width // 2, height // 2)
         self.playerClassInCave = Player(10 // 2, 10 // 2)
@@ -173,6 +184,7 @@ class GameField:
         self.caveGeneration()
         self.caveFieldGeneration()
         self.caveEndGeneration()
+        self.caveMushroomGeneration()
 
     def waterGeneration(self):
         random_corner = random.randint(1, 4)
@@ -272,10 +284,10 @@ class GameField:
             self.caveField[randomY][randomX] = newEnd
 
     def caveFieldGeneration(self):
-        for j in range(10):
+        for j in range(self.caveHeight):
             row = []
-            for i in range(10):
-                if i == 0 or i == 10 - 1 or j == 0 or j == 10 - 1:
+            for i in range(self.caveWidth):
+                if i == 0 or i == self.caveWidth - 1 or j == 0 or j == self.caveHeight - 1:
                     row.append(Barrier(i, j))
                 else:
                     if i == self.playerClassInCave.X and j == self.playerClassInCave.Y:
@@ -290,6 +302,25 @@ class GameField:
             self.caveField.append(row)
 
         self.caveField[self.playerClassInCave.Y][self.playerClassInCave.X] = self.playerClassInCave
+
+    def caveMushroomGeneration(self):
+        count = random.randint(5, 10)
+        for _ in range(count):
+            randomX = random.randint(2, self.caveWidth - 2)
+            randomY = random.randint(2, self.caveHeight - 2)
+            if isinstance(self.caveField[randomY][randomX], Dirt):
+                newMushroom = Mushroom(randomX, randomY)
+                self.caveDirtList.remove(self.caveField[randomY][randomX])
+                self.caveField[randomY][randomX] = newMushroom
+                self.mushroomList.append(newMushroom)
+            else:
+                while not isinstance(self.caveField[randomY][randomX], Dirt):
+                    randomX = random.randint(2, self.caveWidth - 2)
+                    randomY = random.randint(2, self.caveHeight - 2)
+                newMushroom = Mushroom(randomX, randomY)
+                self.caveDirtList.remove(self.caveField[randomY][randomX])
+                self.caveField[randomY][randomX] = newMushroom
+                self.mushroomList.append(newMushroom)
 
     def treeGeneration(self):
         count = random.randint(2, 5)
@@ -335,7 +366,7 @@ class GameField:
                         stdscr.addstr(tile.Y + 1, tile.X, tile.displaySymbol, curses.color_pair(7))
                     elif tile.displaySymbol == 'K':
                         stdscr.addstr(tile.Y + 1, tile.X, tile.displaySymbol, curses.color_pair(8))
-                    elif tile.displaySymbol == 'D':
+                    elif tile.displaySymbol == 'D' or tile.displaySymbol == 'M':
                         stdscr.addstr(tile.Y + 1, tile.X, tile.displaySymbol, curses.color_pair(9))
                     else:
                         stdscr.addstr(tile.Y + 1, tile.X, "E", curses.color_pair(1))
@@ -354,7 +385,8 @@ class GameField:
                         stdscr.addstr(tile.Y + 1, tile.X, tile.displaySymbol, curses.color_pair(4))
                     elif tile.displaySymbol == '&':
                         stdscr.addstr(tile.Y + 1, tile.X, tile.displaySymbol, curses.color_pair(4))
-
+                    elif tile.displaySymbol == 'M':
+                        stdscr.addstr(tile.Y + 1, tile.X, tile.displaySymbol, curses.color_pair(9))
                     else:
                         stdscr.addstr(tile.Y + 1, tile.X, "E", curses.color_pair(1))
 
@@ -864,7 +896,11 @@ class GameField:
             newDirt = Dirt(tile.X, tile.Y)
             self.dirtList.append(newDirt)
             return newDirt
-
+        elif tile.displaySymbol == "M":
+            self.mushroomList.remove(tile)
+            newDirt = Dirt(tile.X, tile.Y)
+            self.caveDirtList.append(newDirt)
+            return newDirt
     def fishSwim(self):
         for fish in self.fishList:
             possible_moves = []
