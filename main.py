@@ -80,6 +80,7 @@ class Fish(Tile):
         self.Y = Y
         self.displaySymbol = "~"
         self.foodAmount = 5
+        self.currentTile = SmallWater(X, Y)
 
 
 class Wolf(Tile):
@@ -87,7 +88,7 @@ class Wolf(Tile):
         self.X = X
         self.Y = Y
         self.displaySymbol = "K"
-        self.foodAmount = 10
+        self.foodAmount = 15
         self.currentTile = Dirt(X, Y)
 
 
@@ -98,6 +99,7 @@ class Deer(Tile):
         self.displaySymbol = "D"
         self.foodAmount = 20
         self.currentTile = Dirt(X, Y)
+        self.tick = 0
 
 
 class Cave(Tile):
@@ -147,11 +149,11 @@ class GameField:
         self.playerClass = Player(width // 2, height // 2)
         self.playerClassInCave = Player(10 // 2, 10 // 2)
         self.currentTile = Dirt(width // 2, height // 2)
-        self.grassOnMapCap = 200
-        self.fishOnMapCap = 3
+        self.grassOnMapCap = 400
+        self.fishOnMapCap = 5
         self.treesOnMapCap = 10
         self.wolvesOnMapCap = 5
-        self.deerOnMapCap = 3
+        self.deerOnMapCap = 5
         self.food = 0
         self.caveMode = False
         self.caveModeExit = False
@@ -159,6 +161,7 @@ class GameField:
         self.fishStat = 0
         self.treeStat = 0
         self.wolfStat = 0
+        self.deerStat = 0
         self.worldGeneration()
 
     def worldGeneration(self):
@@ -526,9 +529,10 @@ class GameField:
             self.growTrees()
             self.fishSwim()
             self.moveWolf()
+            self.moveDeer()
             self.spawnFish()
             self.spawnWolf()
-            # self.spawnDeer()
+            self.spawnDeer()
             self.growGrass()
             self.isOnCave()
 
@@ -543,11 +547,11 @@ class GameField:
                 print("Кількість зловленої риби:", self.fishStat)
                 print("Кількість зловлених вовків:", self.wolfStat)
                 print("Кількість понищених дерев:", self.treeStat)
+                print("Кількість зловлених оленів:", self.deerStat)
 
                 exit(1)
 
     def moveWolf(self):
-        wolfNumber = 1
         for wolf in self.wolfList:
             possible_moves = []
 
@@ -715,6 +719,102 @@ class GameField:
                     wolf.X = new_x
                     wolf.Y = new_y
 
+    def moveDeer(self):  # ticket They are adding more tiles than it needs, I think it`s dirt
+        for deer in self.deerList:
+            if deer.tick == 0:
+                deer.tick = 1
+                possible_moves = []
+
+                # Check possible moves
+                if deer.Y > 0 and isinstance(self.field[deer.Y - 1][deer.X], Dirt) or \
+                        deer.Y > 0 and isinstance(self.field[deer.Y - 1][deer.X], Grass):
+                    possible_moves.append(('up', deer.X, deer.Y - 1))
+                if deer.Y < self.height - 1 and isinstance(self.field[deer.Y + 1][deer.X], Dirt) or \
+                        deer.Y > 0 and isinstance(self.field[deer.Y + 1][deer.X], Grass):
+                    possible_moves.append(('down', deer.X, deer.Y + 1))
+                if deer.X > 0 and isinstance(self.field[deer.Y][deer.X - 1], Dirt) or \
+                        deer.Y > 0 and isinstance(self.field[deer.Y][deer.X - 1], Grass):
+                    possible_moves.append(('left', deer.X - 1, deer.Y))
+                if deer.X < self.width - 1 and isinstance(self.field[deer.Y][deer.X + 1], Dirt) or \
+                        deer.Y > 0 and isinstance(self.field[deer.Y][deer.X + 1], Grass):
+                    possible_moves.append(('right', deer.X + 1, deer.Y))
+
+                if possible_moves:
+                    # Check if player is nearby or at a distance of 5 tiles
+                    player_nearby = False
+                    for direction, x, y in possible_moves:
+                        distance_to_player = abs(x - self.playerClass.X) + abs(y - self.playerClass.Y)
+                        if distance_to_player <= 5:
+                            player_nearby = True
+                            break
+
+                    if player_nearby:
+                        # Deer flee away from the player
+                        new_moves = []
+                        for direction, x, y in possible_moves:
+                            if x < self.playerClass.X:
+                                new_x = deer.X - 1
+                            elif x > self.playerClass.X:
+                                new_x = deer.X + 1
+                            else:
+                                new_x = deer.X
+
+                            if y < self.playerClass.Y:
+                                new_y = deer.Y - 1
+                            elif y > self.playerClass.Y:
+                                new_y = deer.Y + 1
+                            else:
+                                new_y = deer.Y
+
+                            if isinstance(self.field[new_y][new_x], Dirt):
+                                new_moves.append((direction, new_x, new_y))
+                            if isinstance(self.field[new_y][new_x], Grass):
+                                new_moves.append((direction, new_x, new_y))
+
+                        if new_moves:
+                            direction, new_x, new_y = random.choice(new_moves)
+                            # Remove deer from current location
+                            if isinstance(self.field[new_y][new_x], Dirt):
+                                self.dirtList.remove(self.field[new_y][new_x])
+                                newTile = deer.currentTile
+                                if isinstance(newTile, Dirt):
+                                    self.field[deer.Y][deer.X] = newTile
+                                    self.dirtList.append(newTile)
+                            elif isinstance(self.field[new_y][new_x], Grass):
+                                self.field[new_y][new_x] = self.wasEaten(self.field[new_y][new_x])
+                                newTile = deer.currentTile
+                                if isinstance(newTile, Dirt):
+                                    self.field[deer.Y][deer.X] = newTile
+                                    self.dirtList.append(newTile)
+                            # Move deer to new location
+                            deer.currentTile = self.field[new_y][new_x]
+                            self.field[new_y][new_x] = deer
+                            deer.X = new_x
+                            deer.Y = new_y
+                    else:
+                        # deer moves randomly
+                        direction, new_x, new_y = random.choice(possible_moves)
+                        # Remove deer from current location
+                        if isinstance(self.field[new_y][new_x], Dirt):
+                            self.dirtList.remove(self.field[new_y][new_x])
+                            newTile = deer.currentTile
+                            if isinstance(newTile, Dirt):
+                                self.field[deer.Y][deer.X] = newTile
+                                self.dirtList.append(newTile)
+                        elif isinstance(self.field[new_y][new_x], Grass):
+                            self.field[new_y][new_x] = self.wasEaten(self.field[new_y][new_x])
+                            newTile = deer.currentTile
+                            if isinstance(newTile, Dirt):
+                                self.field[deer.Y][deer.X] = newTile
+                                self.dirtList.append(newTile)
+                        # Move deer to new location
+                        deer.currentTile = self.field[new_y][new_x]
+                        self.field[new_y][new_x] = deer
+                        deer.X = new_x
+                        deer.Y = new_y
+            else:
+                deer.tick = 0
+
     def isOnCave(self):
         if isinstance(self.currentTile, Cave):
             self.caveMode = True
@@ -859,7 +959,7 @@ class GameField:
         if deerOnMap >= self.deerOnMapCap:
             return
 
-        spawnChance = random.randint(1, 100)
+        spawnChance = random.randint(1, 10)
         if spawnChance == 1:
             randomDirtTile = random.choice(self.dirtList)
             newDeer = Deer(randomDirtTile.X, randomDirtTile.Y)
@@ -895,70 +995,80 @@ class GameField:
             self.deerList.remove(tile)
             newDirt = Dirt(tile.X, tile.Y)
             self.dirtList.append(newDirt)
+            self.deerStat += 1
             return newDirt
         elif tile.displaySymbol == "M":
             self.mushroomList.remove(tile)
             newDirt = Dirt(tile.X, tile.Y)
             self.caveDirtList.append(newDirt)
             return newDirt
+
     def fishSwim(self):
         for fish in self.fishList:
-            possible_moves = []
+            for _ in range(2):
+                possible_moves = []
+                # Check possible moves
+                if fish.Y > 0 and isinstance(self.field[fish.Y - 1][fish.X], SmallWater):
+                    possible_moves.append(('up', fish.X, fish.Y - 1))
+                if fish.Y < self.height - 1 and isinstance(self.field[fish.Y + 1][fish.X], SmallWater):
+                    possible_moves.append(('down', fish.X, fish.Y + 1))
+                if fish.X > 0 and isinstance(self.field[fish.Y][fish.X - 1], SmallWater):
+                    possible_moves.append(('left', fish.X - 1, fish.Y))
+                if fish.X < self.width - 1 and isinstance(self.field[fish.Y][fish.X + 1], SmallWater):
+                    possible_moves.append(('right', fish.X + 1, fish.Y))
 
-            # Check possible moves
-            if fish.Y > 0 and isinstance(self.field[fish.Y - 1][fish.X], SmallWater):
-                possible_moves.append(('up', fish.X, fish.Y - 1))
-            if fish.Y < self.height - 1 and isinstance(self.field[fish.Y + 1][fish.X], SmallWater):
-                possible_moves.append(('down', fish.X, fish.Y + 1))
-            if fish.X > 0 and isinstance(self.field[fish.Y][fish.X - 1], SmallWater):
-                possible_moves.append(('left', fish.X - 1, fish.Y))
-            if fish.X < self.width - 1 and isinstance(self.field[fish.Y][fish.X + 1], SmallWater):
-                possible_moves.append(('right', fish.X + 1, fish.Y))
-
-            if possible_moves:
-                # Check if player is nearby or at a distance of 2 tiles
-                player_nearby = False
-                for direction, x, y in possible_moves:
-                    distance_to_player = abs(x - self.playerClass.X) + abs(y - self.playerClass.Y)
-                    if distance_to_player <= 2:
-                        player_nearby = True
-                        break
-
-                if player_nearby:
-                    # Fish swims away from the player
-                    new_moves = []
+                if possible_moves:
+                    # Check if player is nearby or at a distance of 5 tiles
+                    player_nearby = False
                     for direction, x, y in possible_moves:
-                        if x < self.playerClass.X:
-                            new_x = fish.X - 1
-                        elif x > self.playerClass.X:
-                            new_x = fish.X + 1
-                        else:
-                            new_x = fish.X
+                        distance_to_player = abs(x - self.playerClass.X) + abs(y - self.playerClass.Y)
+                        if distance_to_player <= 5:
+                            player_nearby = True
+                            break
 
-                        if y < self.playerClass.Y:
-                            new_y = fish.Y - 1
-                        elif y > self.playerClass.Y:
-                            new_y = fish.Y + 1
-                        else:
-                            new_y = fish.Y
+                    if player_nearby:
+                        # Fish swims away from the player
+                        new_moves = []
+                        for direction, x, y in possible_moves:
+                            if x < self.playerClass.X:
+                                new_x = fish.X - 1
+                            elif x > self.playerClass.X:
+                                new_x = fish.X + 1
+                            else:
+                                new_x = fish.X
 
-                        if isinstance(self.field[new_y][new_x], SmallWater):
-                            new_moves.append((direction, new_x, new_y))
+                            if y < self.playerClass.Y:
+                                new_y = fish.Y - 1
+                            elif y > self.playerClass.Y:
+                                new_y = fish.Y + 1
+                            else:
+                                new_y = fish.Y
 
-                    if new_moves:
-                        direction, new_x, new_y = random.choice(new_moves)
-                        self.field[fish.Y][fish.X] = SmallWater(fish.X, fish.Y)
+                            if isinstance(self.field[new_y][new_x], SmallWater):
+                                new_moves.append((direction, new_x, new_y))
+
+                        if new_moves:
+                            direction, new_x, new_y = random.choice(possible_moves)
+                            self.smallWaterList.remove(self.field[new_y][new_x])
+                            newTile = fish.currentTile
+                            self.field[fish.Y][fish.X] = newTile
+                            self.smallWaterList.append(newTile)
+                            fish.currentTile = self.field[new_y][new_x]
+                            self.field[new_y][new_x] = fish
+                            fish.X = new_x
+                            fish.Y = new_y
+
+                    else:
+                        # Fish moves randomly
+                        direction, new_x, new_y = random.choice(possible_moves)
+                        self.smallWaterList.remove(self.field[new_y][new_x])
+                        newTile = fish.currentTile
+                        self.field[fish.Y][fish.X] = newTile
+                        self.smallWaterList.append(newTile)
+                        fish.currentTile = self.field[new_y][new_x]
                         self.field[new_y][new_x] = fish
                         fish.X = new_x
                         fish.Y = new_y
-
-                else:
-                    # Fish moves randomly
-                    direction, new_x, new_y = random.choice(possible_moves)
-                    self.field[fish.Y][fish.X] = SmallWater(fish.X, fish.Y)
-                    self.field[new_y][new_x] = fish
-                    fish.X = new_x
-                    fish.Y = new_y
 
 
 def colorInit():
@@ -1046,7 +1156,7 @@ def main(stdscr):
             for row in game.caveField:
                 count += len(row)
             print("Клітинок в печері", count)  # +1 is player
-            print("Сума клітинок печери", len(game.caveDirtList) + 1 + 20 + 16)  # +1 is player
+            print("Сума клітинок печери", len(game.caveDirtList) + len(game.mushroomList) + 1 + 20 + 16)  # +1 is player
             break
         else:
             continue
